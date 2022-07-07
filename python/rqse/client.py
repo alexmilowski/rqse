@@ -24,11 +24,11 @@ def decode_dictionary(redis_parameters,as_json=True):
 
 class EventClient:
 
-   def __init__(self,key,server='0.0.0.0',port=6379,pool=None):
+   def __init__(self,key,server='0.0.0.0',port=6379,username=None,password=None,pool=None):
       if key is None:
          raise ValueError('The key parameter can not be None')
       self._stream_key = key
-      self._pool = pool if pool is not None else redis.ConnectionPool(host=server,port=port)
+      self._pool = pool if pool is not None else redis.ConnectionPool(host=server,port=port,username=username,password=password)
 
    @property
    def pool(self):
@@ -69,8 +69,8 @@ def handle_event(self,id,event):
       self.ignore(id,event)
 
 class EventListener(EventClient):
-   def __init__(self,key,group,server='0.0.0.0',port=6379,pool=None,select=[],select_attribute='kind',wait=10,):
-      super().__init__(key,server=server,port=port,pool=pool)
+   def __init__(self,key,group,server='0.0.0.0',port=6379,username=None,password=None,pool=None,select=[],select_attribute='kind',wait=10,):
+      super().__init__(key,server=server,port=port,username=username,password=password,pool=pool)
       if group is None:
          raise ValueError('The group parameter can not be None')
       self._group = group
