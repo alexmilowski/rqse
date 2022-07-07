@@ -186,27 +186,31 @@ class EventListener(EventClient):
       self.onStart()
 
       self._established = False
-      while not self._established and self.listening:
-         try:
-            self.establish_consumer()
-            self._established = True
-         except Exception as ex:
-            traceback.print_exc(file=sys.stderr)
-            sleep(self._wait)
-
-      self.onEstablished()
 
       while self.listening:
 
-         try:
-            self.find_pending()
+         while not self._established and self.listening:
+            try:
+               self.establish_consumer()
+               self._established = True
+               self.onEstablished()
+            except Exception as ex:
+               traceback.print_exc(file=sys.stderr)
+               sleep(self._wait)
 
-            for id, event in self.groupread():
-               handle_event(self,id,event)
+         if self._established:
+            try:
+               self.find_pending()
 
-         except Exception as ex:
-            traceback.print_exc(file=sys.stderr)
-            sleep(self._wait)
+               for id, event in self.groupread():
+                  handle_event(self,id,event)
+
+            except Exception as ex:
+               traceback.print_exc(file=sys.stderr)
+               # Note: The key could have been deleted. Setting this
+               # to false will enable resetting the consumer
+               self._established = False
+               sleep(self._wait)
 
       self._running = False
       self.onStop()
