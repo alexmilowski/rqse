@@ -49,9 +49,9 @@ class ReceiptListener(EventListener):
 
       receipt_for = event.get('for')
       if receipt_for is not None:
-         items = self.connection.xread({self._stream_key:receipt_for})
+         items = self.connection.xrange(self._stream_key,min=receipt_for,max=receipt_for,count=1)
          if len(items)>0:
-            _, redis_event = items[0][1][0]
+            redis_event = items[0][1]
             # convert the key/values back into a dictionary
             target_event = decode_dictionary(redis_event)
             try:
