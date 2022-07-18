@@ -3,7 +3,7 @@ import logging
 import json
 from uuid import uuid4
 import traceback
-from time import sleep
+from threading import Event
 
 import redis
 
@@ -69,7 +69,7 @@ def handle_event(self,id,event):
       self.ignore(id,event)
 
 class EventListener(EventClient):
-   def __init__(self,key,group,server='0.0.0.0',port=6379,username=None,password=None,pool=None,select=[],select_attribute='kind',wait=10,):
+   def __init__(self,key,group,server='0.0.0.0',port=6379,username=None,password=None,pool=None,select=[],select_attribute='kind',wait=10,pause=1,block=200,idle_count=5,backoff=10):
       super().__init__(key,server=server,port=port,username=username,password=password,pool=pool)
       if group is None:
          raise ValueError('The group parameter can not be None')
@@ -78,13 +78,20 @@ class EventListener(EventClient):
       self._select = select
       self._select_attribute = select_attribute
       self._wait = wait
+      self._pause = pause
+      self._block = block
+      self._idle_count = idle_count
+      self._backoff = backoff
       self._established = False
-      self._listening = False
+      self._exiting = Event()
       self._running = False
 
    @property
    def listening(self):
-      return self._listening
+      return not self._exiting.is_set()
+
+   def sleep(self,duration):
+      self._exiting.wait(duration)
 
    @property
    def running(self):
@@ -176,18 +183,28 @@ class EventListener(EventClient):
             yield id.decode('utf-8'), event
 
    def stop(self):
-      self._listening = False;
+      self._exiting.set()
 
    def listen(self):
 
       self._running = True
-      self._listening = True
+      self._exiting = Event()
 
       self.onStart()
 
       self._established = False
 
+      count = 0
+      idle = 0
       while self.listening:
+
+         if count >= self._idle_count:
+            delay = self._pause + (idle % self._backoff)*self._pause
+            self.sleep(delay)
+            if idle>0 and idle % self._backoff == 0:
+               idle -= int(self._backoff/2)
+            idle += 1
+            count = 0
 
          while not self._established and self.listening:
             try:
@@ -196,21 +213,26 @@ class EventListener(EventClient):
                self.onEstablished()
             except Exception as ex:
                traceback.print_exc(file=sys.stderr)
-               sleep(self._wait)
+               self.sleep(self._wait)
 
          if self._established:
             try:
                self.find_pending()
 
-               for id, event in self.groupread():
+               start_count = count
+               for id, event in self.groupread(block=self._block):
+                  count = 0
+                  idle = 0
                   handle_event(self,id,event)
+               if start_count==count:
+                  count += 1
 
             except Exception as ex:
                traceback.print_exc(file=sys.stderr)
                # Note: The key could have been deleted. Setting this
                # to false will enable resetting the consumer
                self._established = False
-               sleep(self._wait)
+               self.sleep(self._wait)
 
       self._running = False
       self.onStop()
