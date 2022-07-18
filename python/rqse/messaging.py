@@ -27,8 +27,8 @@ def receipt_for(id,action='processed',target=None):
    return message(kind='receipt',data=data)
 
 class ReceiptListener(EventListener):
-   def __init__(self,key,logger=None,host='0.0.0.0',port=6379,pool=None,wait=10):
-      super().__init__(key,'__receipt__',host=host,port=port,pool=pool,select=['receipt'],wait=wait)
+   def __init__(self,key,logger=None,host='0.0.0.0',port=6379,username=None,password=None,pool=None,wait=10):
+      super().__init__(key,'__receipt__',host=host,port=port,username=username,password=password,pool=pool,select=['receipt'],wait=wait)
       self._logger = logger
       self._deferred = []
 
