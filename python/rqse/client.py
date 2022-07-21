@@ -59,6 +59,13 @@ class EventClient:
             event = decode_dictionary(data)
             yield id.decode('utf-8'), event
 
+   def range(self,start='-',finish='+',count=1):
+      result = self.connection.xrange(self._stream_key,start,finish,count)
+      if len(result)>0:
+         for id, data in result:
+            event = decode_dictionary(data)
+            yield id.decode('utf-8'), event
+
 # TODO: We use a generic function here so that the method isn't exposed
 def handle_event(self,id,event):
    if self.should_process(event):
