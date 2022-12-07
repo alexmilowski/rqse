@@ -171,7 +171,7 @@ class EventListener(EventClient):
          pending = self.connection.xpending_range(self._stream_key,self._group,idle=60*1000,min='-',max='+',count=count)
          has_pending = len(pending)>0
          for message in pending:
-            claimed = self.connection.xclaim(self._stream_key,self._group,self._consumer,60*1000,[pending[0]['message_id'].decode('utf-8')])
+            claimed = self.connection.xclaim(self._stream_key,self._group,self._consumer,60*1000,[message['message_id'].decode('utf-8')])
             if len(claimed)==0 or claimed[0][0] is None:
                continue
             id, redis_event = claimed[0]
