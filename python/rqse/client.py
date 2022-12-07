@@ -72,6 +72,8 @@ def handle_event(self,id,event):
       ok = self.process(id,event)
       if ok:
          self.acknowledge(id,event)
+      else:
+         logging.debug(f'Not acknowledging {id}')
    else:
       self.ignore(id,event)
 
@@ -159,10 +161,14 @@ class EventListener(EventClient):
 
    def ignore(self,id,event):
       # we just acknowledge the event
+      kind = event.get(self._select_attribute)
+      LOGGER.debug(f'Ignoring {id} {kind}')
       self.connection.xack(self._stream_key,self._group,id)
 
    def acknowledge(self,id,event):
       # we acknowledge the event
+      kind = event.get(self._select_attribute)
+      LOGGER.debug(f'Acknowledging {id} {kind}')
       self.connection.xack(self._stream_key,self._group,id)
 
    def find_pending(self,count=100):
@@ -176,8 +182,9 @@ class EventListener(EventClient):
                continue
             id, redis_event = claimed[0]
             id = id.decode('utf-8')
-            LOGGER.info(f'Claimed pending {id}')
             event = decode_dictionary(redis_event)
+            kind = event.get(self._select_attribute)
+            LOGGER.info(f'Claimed pending {id} {kind}')
 
             handle_event(self,id,event)
 
