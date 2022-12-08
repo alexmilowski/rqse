@@ -73,7 +73,7 @@ def handle_event(self,id,event):
       if ok:
          self.acknowledge(id,event)
       else:
-         logging.debug(f'Not acknowledging {id}')
+         logging.debug(f'{self._group} {self._consumer} Not acknowledging {id}')
    else:
       self.ignore(id,event)
 
@@ -162,13 +162,13 @@ class EventListener(EventClient):
    def ignore(self,id,event):
       # we just acknowledge the event
       kind = event.get(self._select_attribute)
-      LOGGER.debug(f'Ignoring {id} {kind}')
+      LOGGER.debug(f'{self._group} {self._consumer} Ignoring {id} {kind}')
       self.connection.xack(self._stream_key,self._group,id)
 
    def acknowledge(self,id,event):
       # we acknowledge the event
       kind = event.get(self._select_attribute)
-      LOGGER.debug(f'Acknowledging {id} {kind}')
+      LOGGER.debug(f'{self._group} {self._consumer} Acknowledging {id} {kind}')
       self.connection.xack(self._stream_key,self._group,id)
 
    def find_pending(self,count=100):
@@ -184,7 +184,7 @@ class EventListener(EventClient):
             id = id.decode('utf-8')
             event = decode_dictionary(redis_event)
             kind = event.get(self._select_attribute)
-            LOGGER.info(f'Claimed pending {id} {kind}')
+            LOGGER.info(f'{self._group} {self._consumer} Claimed pending {id} {kind}')
 
             handle_event(self,id,event)
 
