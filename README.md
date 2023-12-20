@@ -13,3 +13,61 @@ At the center of all of this are [Redis Streams](https://redis.io/docs/manual/da
 They provide a lightweight but fast and reliable mechanism for representing the
 portion of the timeline that is in progress. It also allows a simple mechanism
 for different consumers to process messages and generate receipts.
+
+## Getting Started
+
+Install the package:
+
+```bash
+pip install rqse
+```
+
+A producing system can add events as JSON objects. By default, the `kind` property is used to designate the kind of system event:
+
+```python
+from rqse import EventClient, message
+
+# the stream key
+key = 'events'
+client = EventClient(key=key)
+
+client.append(message(data={'name':'make-bread'},kind='start'))
+client.append(message(data={'name':'make-sandwich'},kind='start'))
+```
+
+And a system can receive events as a consumer:
+
+```python
+from rqse import EventListener, receipt_for
+import logging
+
+# the stream key
+key = 'events'
+# the consumer group
+group = 'starter'
+
+class StartListener()
+
+   def process(self,message_id,event):
+      name = event.get('name')
+      logging.info(f'Started {name}')
+      self.append(receipt_for(message_id))
+      return True
+
+listener = StartListener(key=key,group=group,select=['start'])
+listener.listen()
+
+```
+
+And we can process receipts for things processed
+
+```python
+from rqse import ReceiptListener
+
+# the stream key
+key = 'events'
+
+listener = ReceiptListener(key=key)
+listener.listen()
+
+```
